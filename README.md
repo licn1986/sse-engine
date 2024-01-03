@@ -8,7 +8,7 @@ The SSE ENGINE is a springboot based library that provides a common underlying f
 
 ## SSE Engine Architecture
 
-* [Architecture](doc/sse-engine-architecture.md)
+* [Architecture]
 
 ## Getting started
 In order to use this library, do the following:
@@ -43,11 +43,11 @@ Add following properties in application.properties specified. Values can be adju
 
 `---------------------------------------------------------`
 
-Make sure to add following annotation in your controller:
+Make sure to import the correct xxxBeanConfig when using Spring MVC or WebFlux:
 
 `-----------------------------------------------------------------------------------------------------`
 
-`@ComponentScan(basePackageClasses = {SseEngineBeanConfig.class, SseEngineScheduledConfig.class})`
+`@Import(SseEngineWebMvcBeanConfig or SseEngineWebFluxBeanConfig)`
 
 `-----------------------------------------------------------------------------------------------------`
 
