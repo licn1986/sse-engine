@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EventWebFluxSubscriber.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sse-engine</a> &gt; <a href="index.source.html" class="el_package">com.bally.evolve.core.sse.engine.event</a> &gt; <span class="el_source">EventWebFluxSubscriber.java</span></div><h1>EventWebFluxSubscriber.java</h1><pre class="source lang-java linenums">package com.bally.evolve.core.sse.engine.event;
+
+import com.bally.evolve.core.sse.engine.SseSubscription;
+import com.bally.evolve.core.sse.engine.exception.InvalidSubscriptionException;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.codec.ServerSentEvent;
+
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.EmitResult;
+import reactor.core.publisher.Sinks.Many;
+
+<span class="fc" id="L19">@Slf4j</span>
+<span class="fc" id="L20">public class EventWebFluxSubscriber extends EventSubscriber&lt;Many&lt;ServerSentEvent&lt;String&gt;&gt;&gt; {</span>
+
+  @Autowired
+  // @Qualifier(&quot;sseManyFluxRegistry&quot;)
+  Map&lt;String, Collection&lt;SseSubscription&lt;Many&lt;ServerSentEvent&lt;String&gt;&gt;&gt;&gt;&gt; sseRegistry;
+
+  @Override
+  public SseSubscription&lt;Many&lt;ServerSentEvent&lt;String&gt;&gt;&gt; subscribe(String subscriptionId) {
+<span class="fc" id="L28">    return subscribe(subscriptionId, null, null);</span>
+  }
+
+  @Override
+  public SseSubscription&lt;Many&lt;ServerSentEvent&lt;String&gt;&gt;&gt; subscribe(
+      String subscriptionId,
+      Consumer&lt;SseSubscription&lt;Many&lt;ServerSentEvent&lt;String&gt;&gt;&gt;&gt; notifySubscriptionPublished,
+      Consumer&lt;SseSubscription&lt;Many&lt;ServerSentEvent&lt;String&gt;&gt;&gt;&gt; notifySubscriptionRemoved) {
+<span class="fc bfc" id="L36" title="All 2 branches covered.">    if (subscriptionId == null)</span>
+<span class="fc" id="L37">      throw new InvalidSubscriptionException(&quot;The param susbscriptionId cannot be null.&quot;);</span>
+
+<span class="fc" id="L39">    log.info(&quot;webflux subscriber!!!!!&quot;);</span>
+<span class="fc" id="L40">    Many&lt;ServerSentEvent&lt;String&gt;&gt; sinkMany = Sinks.many().unicast().onBackpressureBuffer();</span>
+<span class="fc" id="L41">    SseSubscription&lt;Many&lt;ServerSentEvent&lt;String&gt;&gt;&gt; sseSubscription =</span>
+        new SseSubscription&lt;&gt;(sinkMany, notifySubscriptionPublished, notifySubscriptionRemoved);
+<span class="fc" id="L43">    sseRegistry</span>
+<span class="fc" id="L44">        .computeIfAbsent(subscriptionId, key -&gt; new ConcurrentLinkedQueue&lt;&gt;())</span>
+<span class="fc" id="L45">        .add(sseSubscription);</span>
+
+<span class="fc" id="L47">    EmitResult emitResult =</span>
+<span class="fc" id="L48">        sinkMany.tryEmitNext(</span>
+<span class="fc" id="L49">            ServerSentEvent.&lt;String&gt;builder().id(subscriptionId).event(&quot;INIT&quot;).build());</span>
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">    if (emitResult.isSuccess()) {</span>
+<span class="fc" id="L51">      log.info(&quot;SseMany init succeeded for subscriptionId: &quot; + subscriptionId);</span>
+    } else {
+<span class="nc" id="L53">      log.error(&quot;SseMany init failed for subscriptionId: &quot; + subscriptionId);</span>
+    }
+<span class="fc" id="L55">    return sseSubscription;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

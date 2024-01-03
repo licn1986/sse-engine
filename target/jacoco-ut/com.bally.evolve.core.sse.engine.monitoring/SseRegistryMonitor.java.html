@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SseRegistryMonitor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sse-engine</a> &gt; <a href="index.source.html" class="el_package">com.bally.evolve.core.sse.engine.monitoring</a> &gt; <span class="el_source">SseRegistryMonitor.java</span></div><h1>SseRegistryMonitor.java</h1><pre class="source lang-java linenums">package com.bally.evolve.core.sse.engine.monitoring;
+
+import com.bally.evolve.core.sse.engine.SseSubscription;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Sinks.Many;
+
+@Component
+<span class="fc" id="L18">@Slf4j</span>
+<span class="fc" id="L19">public class SseRegistryMonitor {</span>
+  @Autowired
+  // @Qualifier(&quot;sseManyFluxRegistry&quot;)
+  Map&lt;String, Collection&lt;SseSubscription&lt;Many&lt;ServerSentEvent&lt;String&gt;&gt;&gt;&gt;&gt; sseRegistry;
+
+  public void cleanupEventFluxRegistry() {
+<span class="fc" id="L25">    sseRegistry.keySet().stream()</span>
+<span class="fc" id="L26">        .forEach(</span>
+            subscriptionId -&gt; {
+<span class="fc" id="L28">              Collection&lt;SseSubscription&lt;Many&lt;ServerSentEvent&lt;String&gt;&gt;&gt;&gt; listSseSubscription =</span>
+<span class="fc" id="L29">                  sseRegistry.get(subscriptionId);</span>
+<span class="fc" id="L30">              listSseSubscription.stream()</span>
+<span class="fc" id="L31">                  .forEach(</span>
+                      sseSubscription -&gt; {
+<span class="fc" id="L33">                        Many&lt;ServerSentEvent&lt;String&gt;&gt; subscription =</span>
+<span class="fc" id="L34">                            sseSubscription.getSubscription();</span>
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">                        if (subscription.currentSubscriberCount() &lt;= 0) {</span>
+<span class="fc" id="L36">                          sseRegistry.remove(subscriptionId);</span>
+                          Consumer&lt;SseSubscription&lt;Many&lt;ServerSentEvent&lt;String&gt;&gt;&gt;&gt;
+<span class="fc" id="L38">                              subscriptionRemoved = sseSubscription.getSubscriptionRemoved();</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">                          if (subscriptionRemoved != null) {</span>
+<span class="fc" id="L40">                            CompletableFuture.runAsync(</span>
+                                () -&gt; {
+<span class="fc" id="L42">                                  subscriptionRemoved.accept(sseSubscription);</span>
+<span class="fc" id="L43">                                });</span>
+                          }
+<span class="fc" id="L45">                          log.info(</span>
+<span class="fc" id="L46">                              subscription.stepName()</span>
+                                  + &quot; susbcriber count is zero and is removed from registry.&quot;);
+<span class="fc" id="L48">                        } else {</span>
+<span class="nc" id="L49">                          log.info(</span>
+<span class="nc" id="L50">                              subscription.stepName()</span>
+                                  + &quot; susbcriber count: &quot;
+<span class="nc" id="L52">                                  + subscription.currentSubscriberCount());</span>
+                        }
+<span class="fc" id="L54">                      });</span>
+<span class="fc" id="L55">            });</span>
+<span class="fc" id="L56">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EventWebMvcSubscriber.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sse-engine</a> &gt; <a href="index.source.html" class="el_package">com.bally.evolve.core.sse.engine.event</a> &gt; <span class="el_source">EventWebMvcSubscriber.java</span></div><h1>EventWebMvcSubscriber.java</h1><pre class="source lang-java linenums">package com.bally.evolve.core.sse.engine.event;
+
+import com.bally.evolve.core.sse.engine.SseSubscription;
+import com.bally.evolve.core.sse.engine.exception.InvalidSubscriptionException;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import lombok.extern.slf4j.Slf4j;
+
+<span class="fc" id="L17">@Slf4j</span>
+<span class="fc" id="L18">public class EventWebMvcSubscriber extends EventSubscriber&lt;SseEmitter&gt; {</span>
+  @Autowired
+  // @Qualifier(&quot;sseEmitterRegistry&quot;)
+  Map&lt;String, Collection&lt;SseSubscription&lt;SseEmitter&gt;&gt;&gt; sseRegistry;
+
+  @Override
+  public SseSubscription&lt;SseEmitter&gt; subscribe(String subscriptionId)
+      throws InvalidSubscriptionException {
+<span class="fc" id="L26">    return subscribe(subscriptionId, null, null);</span>
+  }
+
+  @Override
+  public SseSubscription&lt;SseEmitter&gt; subscribe(
+      String subscriptionId,
+      Consumer&lt;SseSubscription&lt;SseEmitter&gt;&gt; notifySubscriptionPublished,
+      Consumer&lt;SseSubscription&lt;SseEmitter&gt;&gt; notifySubscriptionRemoved) {
+<span class="fc bfc" id="L34" title="All 2 branches covered.">    if (subscriptionId == null)</span>
+<span class="fc" id="L35">      throw new InvalidSubscriptionException(&quot;The param susbscriptionId cannot be null.&quot;);</span>
+<span class="fc" id="L36">    SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);</span>
+<span class="fc" id="L37">    SseSubscription&lt;SseEmitter&gt; sseSubscription =</span>
+        new SseSubscription&lt;&gt;(emitter, notifySubscriptionPublished, notifySubscriptionRemoved);
+<span class="fc" id="L39">    sseRegistry</span>
+<span class="fc" id="L40">        .computeIfAbsent(subscriptionId, key -&gt; new ConcurrentLinkedQueue&lt;&gt;())</span>
+<span class="fc" id="L41">        .add(sseSubscription);</span>
+
+    try {
+<span class="fc" id="L44">      emitter.send(SseEmitter.event().id(subscriptionId).name(&quot;INIT&quot;));</span>
+<span class="fc" id="L45">      log.info(&quot;SseEmitter init succeeded for subscriptionId: &quot; + subscriptionId);</span>
+<span class="nc" id="L46">    } catch (IOException e) {</span>
+<span class="nc" id="L47">      log.error(</span>
+          &quot;SseEmitter init exception for subscriptionId: &quot;
+              + subscriptionId
+              + &quot;, error: &quot;
+<span class="nc" id="L51">              + e.getMessage());</span>
+<span class="fc" id="L52">    }</span>
+
+<span class="fc" id="L54">    emitter.onTimeout(emitter::complete);</span>
+<span class="fc" id="L55">    emitter.onCompletion(() -&gt; this.removeEmitter(subscriptionId, sseSubscription));</span>
+<span class="fc" id="L56">    emitter.onError(</span>
+        error -&gt; {
+<span class="nc" id="L58">          log.info(&quot;SseEmitter error for subscriptionId: &quot; + subscriptionId + &quot;, error: &quot; + error);</span>
+<span class="nc" id="L59">          this.removeEmitter(subscriptionId, sseSubscription);</span>
+<span class="nc" id="L60">        });</span>
+
+<span class="fc" id="L62">    return sseSubscription;</span>
+  }
+
+  //  protected Collection&lt;SseSubscription&lt;SseEmitter&gt;&gt; lookupEmitterSubscription(
+  //      String subscriptionId) {
+  //    return sseEmitterRegistry.get(subscriptionId);
+  //  }
+
+  protected void removeEmitter(
+      final String subscriptionId, final SseSubscription&lt;SseEmitter&gt; sseSubscription) {
+<span class="fc" id="L72">    Collection&lt;SseSubscription&lt;SseEmitter&gt;&gt; listSseSubscription = sseRegistry.get(subscriptionId);</span>
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">    if (listSseSubscription != null) {</span>
+<span class="fc" id="L74">      listSseSubscription.remove(sseSubscription);</span>
+<span class="fc" id="L75">      log.info(&quot;Removed emitter for subscriptionId: &quot; + subscriptionId);</span>
+    }
+<span class="fc" id="L77">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
